@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -34,30 +35,20 @@ func main() {
 			fmt.Println("NameErr: ", nameErr)
 			fmt.Println("Line ", counter, " has an error and was not added to the tally, please ensure your format for every line is team1 score, team2 score")
 		} else {
+			if _, exists := teamPoints[teamName1]; !exists {
+				teamPoints[teamName1] = 0
+			}
+			if _, exists := teamPoints[teamName2]; !exists {
+				teamPoints[teamName2] = 0
+			}
 			println("Result: ", result)
 			if result == "tie" {
-				if _, exists := teamPoints[teamName1]; exists {
-					teamPoints[teamName1] += 1
-				} else {
-					teamPoints[teamName1] += 1
-				}
-				if _, exists := teamPoints[teamName2]; exists {
-					teamPoints[teamName2] += 1
-				} else {
-					teamPoints[teamName2] += 1
-				}
+				teamPoints[teamName1] += 1
+				teamPoints[teamName2] += 1
 			} else if result == teamName1 {
-				if _, exists := teamPoints[teamName1]; exists {
-					teamPoints[teamName1] += 3
-				} else {
-					teamPoints[teamName1] += 3
-				}
+				teamPoints[teamName1] += 3
 			} else {
-				if _, exists := teamPoints[teamName2]; exists {
-					teamPoints[teamName2] += 3
-				} else {
-					teamPoints[teamName2] += 3
-				}
+				teamPoints[teamName2] += 3
 			}
 		}
 
@@ -68,11 +59,34 @@ func main() {
 		log.Fatal(err)
 	}
 	fmt.Println("output: ")
-	for team, score := range teamPoints {
-		fmt.Println(team, " - ", score)
+	type teamNameScore struct {
+		Name  string
+		Score int
 	}
 
-	fmt.Println("The Result is also written to the results file")
+	var sortedTeams []teamNameScore
+
+	for team, score := range teamPoints {
+		sortedTeams = append(sortedTeams, teamNameScore{team, score})
+	}
+
+	sort.Slice(sortedTeams, func(i, j int) bool {
+		return sortedTeams[i].Score > sortedTeams[j].Score
+	})
+
+	pos := 0
+	previousScore := 0
+	for i, team := range sortedTeams {
+		if previousScore != team.Score || pos == 0 {
+			pos = i + 1
+		}
+		if i != len(sortedTeams)-1 {
+			fmt.Printf("%d. %s, %d pts\n", pos, team.Name, team.Score)
+			previousScore = team.Score
+		} else {
+			fmt.Printf("%d. %s, %d pts", pos, team.Name, team.Score)
+		}
+	}
 }
 
 func calculateTeamPoints(team1Score, team2Score int, team1Name, team2Name string) (result string, calculationError error) {
