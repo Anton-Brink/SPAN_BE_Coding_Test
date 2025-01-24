@@ -34,7 +34,7 @@ func main() {
 			fmt.Println("NameErr: ", nameErr)
 			fmt.Println("Line ", counter, " has an error and was not added to the tally, please ensure your format for every line is team1 score, team2 score")
 		} else {
-
+			println("Result: ", result)
 			if result == "tie" {
 				if _, exists := teamPoints[teamName1]; exists {
 					teamPoints[teamName1] += 1
@@ -94,26 +94,46 @@ func getTeamNamesAndScores(inputLine string) (teamName1, teamName2 string, teamS
 		return "", "", 0, 0, errors.New("invalid line, too many commas")
 	} else {
 
-		getTeamNameAndScore := func(nameAndScoreString string) (teamName string, teamScore int) {
+		getTeamNameAndScore := func(nameAndScoreString string) (teamName string, teamScore int, scoreErr error) {
 			nameScoreSplitRegex := regexp.MustCompile(`\s[0-9]+`)
-			teamNameAndScore := nameScoreSplitRegex.Split(nameAndScoreString, -1)
-			// teamNameAndScore := strings.Split(nameAndScoreString,nameScoreSplitRegex);
-			var scoreErr error
-			if len(teamNameAndScore) > 2 {
-				teamName = strings.Join(teamNameAndScore[0:len(teamNameAndScore)-2], ",")
-				teamScore, scoreErr = strconv.Atoi(teamNameAndScore[len(teamNameAndScore)-1])
-				if scoreErr != nil {
-					return
-				}
-			} else if len(teamNameAndScore) == 2 {
-				teamName = teamNameAndScore[0]
-				teamScore, scoreErr = strconv.Atoi(teamNameAndScore[1])
+			println("name and score string: ", nameAndScoreString)
+			scoreIndex := nameScoreSplitRegex.FindStringIndex(nameAndScoreString)
+			teamName = nameAndScoreString[0:scoreIndex[0]]
+			teamScore, scoreErr = strconv.Atoi(strings.TrimSpace(nameAndScoreString[scoreIndex[0]:scoreIndex[1]]))
+			if scoreErr != nil {
+				return "", 0, scoreErr
 			}
-			return teamName, teamScore
+			return teamName, teamScore, nil
+
+			// teamNameAndScore := strings.Split(nameAndScoreString,nameScoreSplitRegex);
+			// println("Team Name: ", teamNameAndScore[0])
+			// println("Team Score: ", teamNameAndScore[1])
+			//for now do stuff for teams without number in name
+
+			// if len(teamNameAndScore) > 2 {
+			// 	teamName = strings.Join(teamNameAndScore[0:len(teamNameAndScore)-2], ",")
+			// 	teamScore, scoreErr = strconv.Atoi(teamNameAndScore[len(teamNameAndScore)-1])
+			// 	if scoreErr != nil {
+			// 		return
+			// 	}
+			// } else if len(teamNameAndScore) == 2 {
+			// 	teamName = teamNameAndScore[0]
+			// 	teamScore, scoreErr = strconv.Atoi(teamNameAndScore[1])
+			// }
+			// if scoreErr != nil {
+			// 	return "", 0, scoreErr
+			// }
+			// return teamName, teamScore, nil
 		}
 
-		teamName1, teamScore1 := getTeamNameAndScore(bothNamesAndScores[0])
-		teamName2, teamScore2 := getTeamNameAndScore(bothNamesAndScores[1])
+		teamName1, teamScore1, scoreErr := getTeamNameAndScore(bothNamesAndScores[0])
+		if scoreErr != nil {
+			return teamName1, teamName2, teamScore1, teamScore2, scoreErr
+		}
+		teamName2, teamScore2, scoreErr := getTeamNameAndScore(bothNamesAndScores[1])
+		if scoreErr != nil {
+			return teamName1, teamName2, teamScore1, teamScore2, scoreErr
+		}
 		return teamName1, teamName2, teamScore1, teamScore2, nil
 	}
 
