@@ -1,0 +1,5 @@
+1970 Coca Cola 5, Pepsi 2
+Fanta 1899 3, 1970 Coca Cola 4
+Pepsi 2, Fanta 1899 4
+Fanta 1899 3, Pepsi 1
+1970 Coca Cola 3, Fanta 1899 1

@@ -1,5 +1,1 @@
-Lions 3, Snakes 3
-Tarantulas 1, FC Awesome 0
-Lions 1, FC Awesome 1
-Tarantulas 3, Snakes 1
-Lions 4, Grouches 0
+University of California 1970, Los Angeles 5, Team 2 2 

@@ -2,18 +2,19 @@ package main
 
 import (
 	"bufio"
+	"cmp"
 	"errors"
 	"fmt"
 	"log"
 	"os"
 	"regexp"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 )
 
 func main() {
-	fmt.Println("input team results:")
+	// fmt.Println("input team results:")
 	scanner := bufio.NewScanner(os.Stdin)
 
 	teamPoints := make(map[string]int)
@@ -41,7 +42,7 @@ func main() {
 			if _, exists := teamPoints[teamName2]; !exists {
 				teamPoints[teamName2] = 0
 			}
-			println("Result: ", result)
+			// println("Result: ", result)
 			if result == "tie" {
 				teamPoints[teamName1] += 1
 				teamPoints[teamName2] += 1
@@ -58,7 +59,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println("output: ")
+	// fmt.Println("output: ")
 	type teamNameScore struct {
 		Name  string
 		Score int
@@ -70,8 +71,8 @@ func main() {
 		sortedTeams = append(sortedTeams, teamNameScore{team, score})
 	}
 
-	sort.Slice(sortedTeams, func(i, j int) bool {
-		return sortedTeams[i].Score > sortedTeams[j].Score
+	slices.SortFunc(sortedTeams, func(i, j teamNameScore) int {
+		return cmp.Compare(j.Score, i.Score)
 	})
 
 	pos := 0
@@ -103,41 +104,30 @@ func getTeamNamesAndScores(inputLine string) (teamName1, teamName2 string, teamS
 	// do regex later for proof of concept stuff, teams with comma and or numbers in name
 	// splitRegex := regexp.MustCompile("[0-9], [0-9a-zA-Z]");
 	var bothNamesAndScores = strings.Split(inputLine, ",")
+	// println("BothNamesAndScores: ", bothNamesAndScores)
 
-	if len(bothNamesAndScores) != 2 {
-		return "", "", 0, 0, errors.New("invalid line, too many commas")
+	if len(bothNamesAndScores) < 2 {
+		return "", "", 0, 0, errors.New("invalid line, no commas to separate teams")
 	} else {
 
 		getTeamNameAndScore := func(nameAndScoreString string) (teamName string, teamScore int, scoreErr error) {
 			nameScoreSplitRegex := regexp.MustCompile(`\s[0-9]+`)
-			println("name and score string: ", nameAndScoreString)
-			scoreIndex := nameScoreSplitRegex.FindStringIndex(nameAndScoreString)
-			teamName = nameAndScoreString[0:scoreIndex[0]]
-			teamScore, scoreErr = strconv.Atoi(strings.TrimSpace(nameAndScoreString[scoreIndex[0]:scoreIndex[1]]))
+			// println("name and score string: ", nameAndScoreString)
+			scoreIndex := nameScoreSplitRegex.FindAllStringIndex(nameAndScoreString, -1)
+
+			if scoreIndex == nil {
+				return "", 0, errors.New("invalid line, could not find a team score")
+			}
+			//find last index of a space followed by a number
+			// fmt.Printf("Score Index: %v", scoreIndex)
+
+			// println(scoreIndex)
+			teamName = nameAndScoreString[0:scoreIndex[len(scoreIndex)-1][0]]
+			teamScore, scoreErr = strconv.Atoi(strings.TrimSpace(nameAndScoreString[scoreIndex[len(scoreIndex)-1][0]:scoreIndex[len(scoreIndex)-1][1]]))
 			if scoreErr != nil {
 				return "", 0, scoreErr
 			}
 			return teamName, teamScore, nil
-
-			// teamNameAndScore := strings.Split(nameAndScoreString,nameScoreSplitRegex);
-			// println("Team Name: ", teamNameAndScore[0])
-			// println("Team Score: ", teamNameAndScore[1])
-			//for now do stuff for teams without number in name
-
-			// if len(teamNameAndScore) > 2 {
-			// 	teamName = strings.Join(teamNameAndScore[0:len(teamNameAndScore)-2], ",")
-			// 	teamScore, scoreErr = strconv.Atoi(teamNameAndScore[len(teamNameAndScore)-1])
-			// 	if scoreErr != nil {
-			// 		return
-			// 	}
-			// } else if len(teamNameAndScore) == 2 {
-			// 	teamName = teamNameAndScore[0]
-			// 	teamScore, scoreErr = strconv.Atoi(teamNameAndScore[1])
-			// }
-			// if scoreErr != nil {
-			// 	return "", 0, scoreErr
-			// }
-			// return teamName, teamScore, nil
 		}
 
 		teamName1, teamScore1, scoreErr := getTeamNameAndScore(bothNamesAndScores[0])
