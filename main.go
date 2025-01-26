@@ -26,9 +26,7 @@ type teamNamePoints struct {
 }
 
 func main() {
-	// fmt.Println("input team results:")
 	teamPoints := receiveScannerInputs()
-	fmt.Printf("Team Points: %v", teamPoints)
 	sortedTeams := calculateTeamsOrder(teamPoints)
 	printResults(sortedTeams, os.Stdout)
 }
@@ -40,10 +38,23 @@ func receiveScannerInputs() map[string]int {
 	teamPoints := make(map[string]int)
 	//use a counter so we can identify which line an error occurs when feeding in files for testing, could obviously also be used for production if its changed to use files
 	counter := 0
-	fmt.Println("Please start entering match results in the following format 'teamname1 teamscore1, teamname2 teamscore2', you can end the process by entering 'end' or just pressing enter with no text")
-	for {
-		scanner.Scan()
-		line := scanner.Text()
+	fmt.Println("Please enter your filename, the file lines must be in the following format 'teamname1 teamscore1, teamname2 teamscore2', you can end the process by entering 'end' or just pressing enter with no text")
+	scanner.Scan()
+	filename := scanner.Text()
+	err1 := scanner.Err()
+	if err1 != nil {
+		log.Fatal(err1)
+	}
+	file, err2 := os.Open("./gameResults/" + filename)
+	if err2 != nil {
+		log.Fatal(err2)
+	}
+	defer file.Close()
+	fileScanner := bufio.NewScanner(file)
+
+	for fileScanner.Scan() {
+		line := fileScanner.Text()
+
 		if len(line) == 0 || line == "end" {
 			break
 		}
@@ -53,17 +64,10 @@ func receiveScannerInputs() map[string]int {
 		if nameErr != nil {
 			handleError(nameErr, counter, os.Stdout, os.Stdout)
 		} else {
-			fmt.Printf("Team 1: %v", team1)
-			fmt.Printf("Team 2: %v", team2)
 			result = calculateTeamPoints(team1, team2)
 			initAndUpdateTeamPoints(teamPoints, team1.Name, team2.Name, result)
 		}
 
-	}
-
-	err := scanner.Err()
-	if err != nil {
-		log.Fatal(err)
 	}
 	return teamPoints
 }
@@ -175,7 +179,6 @@ func getTeamNamesAndScores(inputLine string) (teamNameScore1, teamNameScore2 tea
 			//find last index of a space followed by a number
 			teamName := nameAndScoreString[0:scoreIndex[len(scoreIndex)-1][0]]
 			teamScore, scoreErr := strconv.Atoi(strings.TrimSpace(nameAndScoreString[scoreIndex[len(scoreIndex)-1][0]:scoreIndex[len(scoreIndex)-1][1]]))
-			fmt.Println("Makes to here with ", teamName, " and team score ", teamScore)
 			if scoreErr != nil {
 				return teamNameScore{teamName, teamScore}, scoreErr
 			}
