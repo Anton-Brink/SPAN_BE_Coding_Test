@@ -72,7 +72,10 @@ func main() {
 	}
 
 	slices.SortFunc(sortedTeams, func(i, j teamNameScore) int {
-		return cmp.Compare(j.Score, i.Score)
+		if result := cmp.Compare(j.Score, i.Score); result != 0 {
+			return result
+		}
+		return strings.Compare(i.Name, j.Name)
 	})
 
 	pos := 0

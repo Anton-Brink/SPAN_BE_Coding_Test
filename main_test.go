@@ -20,7 +20,7 @@ var testCaseFileNames = []filesAndExpectedFails{
 	{"result4.txt", 0},
 }
 
-var debugFile = "result4.txt"
+var debugFile = "result3.txt"
 
 func TestGetTeamNamesAndScores(t *testing.T) {
 	errCounter := 0
