@@ -28,10 +28,10 @@ func TestGetTeamNamesAndScores(t *testing.T) {
 	}
 
 	var testCaseFileNames = []filesAndExpectedFails{
-		{"result1.txt", []int{}},
-		{"result2.txt", []int{6, 7, 8}},
-		{"result3.txt", []int{1}},
-		{"result4.txt", []int{}},
+		{"resultnamesAndScores.txt", []int{}},
+		{"resultnamesAndScores2.txt", []int{6, 7, 8}},
+		{"resultnamesAndScores3.txt", []int{1}},
+		{"resultnamesAndScores4.txt", []int{}},
 	}
 
 	var debugFile = "result3.txt"
@@ -185,5 +185,43 @@ func TestPrintResults(t *testing.T) {
 }
 
 func TestReceiveScannerInputs(t *testing.T) {
+	scannerInputTests := []struct {
+		fileName       string
+		expectedResult map[string]int
+	}{
+		{"result1.txt", map[string]int{"Lions": 5, "Snakes": 1, "Tarantulas": 6, "FC Awesome": 1, "Grouches": 0}},
+		{"result2.txt", map[string]int{"Lions": 5, "Snakes": 1, "Tarantulas": 6, "FC Awesome": 1, "Grouches": 0}},
+		{"result3.txt", map[string]int{"the, c4,ts": 3, "the, lions": 0}},
+		{"result4.txt", map[string]int{"1970 Coca Cola": 9, "Pepsi": 0, "Fanta 1899": 6}},
+	}
+
+	for i, scannerInputTest := range scannerInputTests {
+
+		reader, writer, err := os.Pipe()
+		if err != nil {
+			t.Fatalf("failed to create pipe: %v", err)
+			t.FailNow()
+		}
+		defer reader.Close()
+		defer writer.Close()
+
+		// Save the original os.Stdin for restoration later
+		originalStdin := os.Stdin
+		defer func() { os.Stdin = originalStdin }()
+
+		os.Stdin = reader
+
+		input := scannerInputTest.fileName
+		go func() {
+			fmt.Fprint(writer, input)
+			writer.Close() // Close the writer to signal EOF
+		}()
+
+		scannerInputResult := receiveScannerInputs()
+
+		if !reflect.DeepEqual(scannerInputResult, scannerInputTest.expectedResult) {
+			t.Errorf("The results are not the same as expected for scannerInputTests %d\n expected: %v\n actual: %v", i+1, scannerInputTest.expectedResult, scannerInputResult)
+		}
+	}
 
 }
