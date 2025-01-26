@@ -19,7 +19,7 @@ func main() {
 
 	teamPoints := make(map[string]int)
 	counter := 0
-
+	fmt.Println("Please start entering match results in the following format 'teamname1 teamscore1, teamname2 teamscore2', you can end the process by entering 'end' or just pressing enter with no text")
 	for {
 		scanner.Scan()
 		line := scanner.Text()
