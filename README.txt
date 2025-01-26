@@ -1,0 +1,1 @@
+Input files can be placed inside the gameResults directory
