@@ -19,11 +19,18 @@ type teamNameScore struct {
 	Score int
 }
 
+// teamNamePoints is used for the team league results and teamNameScore is used for the teams score per game
+type teamNamePoints struct {
+	Name   string
+	Points int
+}
+
 func main() {
 	// fmt.Println("input team results:")
 	teamPoints := receiveScannerInputs()
+	fmt.Printf("Team Points: %v", teamPoints)
 	sortedTeams := calculateTeamsOrder(teamPoints)
-	printResults(sortedTeams)
+	printResults(sortedTeams, os.Stdout)
 }
 
 func receiveScannerInputs() map[string]int {
@@ -42,12 +49,14 @@ func receiveScannerInputs() map[string]int {
 		}
 		counter++
 		result := ""
-		teamName1, teamName2, team1Score, team2Score, nameErr := getTeamNamesAndScores(line)
+		team1, team2, nameErr := getTeamNamesAndScores(line)
 		if nameErr != nil {
 			handleError(nameErr, counter, os.Stdout, os.Stdout)
 		} else {
-			result = calculateTeamPoints(team1Score, team2Score, teamName1, teamName2)
-			initAndUpdateTeamPoints(teamPoints, teamName1, teamName2, result)
+			fmt.Printf("Team 1: %v", team1)
+			fmt.Printf("Team 2: %v", team2)
+			result = calculateTeamPoints(team1, team2)
+			initAndUpdateTeamPoints(teamPoints, team1.Name, team2.Name, result)
 		}
 
 	}
@@ -79,16 +88,16 @@ func handleError(err error, lineNumber int, w, w2 io.Writer) {
 	fmt.Fprintf(w2, "Line %d has an error and was not added to the tally, please ensure your format for every line is team1 score, team2 score\n", lineNumber)
 }
 
-func calculateTeamsOrder(teamPoints map[string]int) []teamNameScore {
+func calculateTeamsOrder(teamPoints map[string]int) []teamNamePoints {
 
-	var sortedTeams []teamNameScore
+	var sortedTeams []teamNamePoints
 
-	for team, score := range teamPoints {
-		sortedTeams = append(sortedTeams, teamNameScore{team, score})
+	for team, points := range teamPoints {
+		sortedTeams = append(sortedTeams, teamNamePoints{team, points})
 	}
 
-	slices.SortFunc(sortedTeams, func(i, j teamNameScore) int {
-		if result := cmp.Compare(j.Score, i.Score); result != 0 {
+	slices.SortFunc(sortedTeams, func(i, j teamNamePoints) int {
+		if result := cmp.Compare(j.Points, i.Points); result != 0 {
 			return result
 		}
 		return strings.Compare(i.Name, j.Name)
@@ -97,33 +106,41 @@ func calculateTeamsOrder(teamPoints map[string]int) []teamNameScore {
 	return sortedTeams
 }
 
-func printResults(sortedTeams []teamNameScore) {
+func printResults(sortedTeams []teamNamePoints, w io.Writer) {
 	pos := 0
-	previousScore := 0
+	previousPoints := 0
 	for i, team := range sortedTeams {
-		if previousScore != team.Score || pos == 0 {
+		if previousPoints != team.Points || pos == 0 {
 			pos = i + 1
 		}
 		if i != len(sortedTeams)-1 {
-			fmt.Printf("%d. %s, %d pts\n", pos, team.Name, team.Score)
-			previousScore = team.Score
+			if team.Points != 1 {
+				fmt.Fprintf(w, "%d. %s, %d pts\n", pos, team.Name, team.Points)
+			} else {
+				fmt.Fprintf(w, "%d. %s, %d pt\n", pos, team.Name, team.Points)
+			}
+			previousPoints = team.Points
 		} else {
-			fmt.Printf("%d. %s, %d pts", pos, team.Name, team.Score)
+			if team.Points != 1 {
+				fmt.Fprintf(w, "%d. %s, %d pts", pos, team.Name, team.Points)
+			} else {
+				fmt.Fprintf(w, "%d. %s, %d pt", pos, team.Name, team.Points)
+			}
 		}
 	}
 }
 
-func calculateTeamPoints(team1Score, team2Score int, team1Name, team2Name string) (result string) {
-	if team1Score == team2Score {
+func calculateTeamPoints(team1, team2 teamNameScore) (result string) {
+	if team1.Score == team2.Score {
 		return "tie"
-	} else if team1Score > team2Score {
-		return team1Name
+	} else if team1.Score > team2.Score {
+		return team1.Name
 	} else {
-		return team2Name
+		return team2.Name
 	}
 }
 
-func getTeamNamesAndScores(inputLine string) (teamName1, teamName2 string, teamScore1, teamScore2 int, calculationError error) {
+func getTeamNamesAndScores(inputLine string) (teamNameScore1, teamNameScore2 teamNameScore, calculationError error) {
 
 	// get positions of commas that are preceded by a score
 	splitPosRegex := regexp.MustCompile(`\s[0-9]+,\s`)
@@ -131,9 +148,9 @@ func getTeamNamesAndScores(inputLine string) (teamName1, teamName2 string, teamS
 	var teamDelimSplitArray = splitPosRegex.Split(inputLine, -1)
 
 	if teamDelimPos == nil {
-		return "", "", 0, 0, errors.New("invalid line, teams have to be separated by a comma , for example team1 3, team2 4")
+		return teamNameScore{"", 0}, teamNameScore{"", 0}, errors.New("invalid line, teams have to be separated by a comma , for example team1 3, team2 4")
 	} else if len(teamDelimSplitArray) > 2 {
-		return "", "", 0, 0, errors.New("invalid line, team names cannot contain commas and numbers in the following format ' 1234, '")
+		return teamNameScore{"", 0}, teamNameScore{"", 0}, errors.New("invalid line, team names cannot contain commas and numbers in the following format ' 1234, '")
 	}
 	var teamNamesAndScores []string
 
@@ -144,35 +161,38 @@ func getTeamNamesAndScores(inputLine string) (teamName1, teamName2 string, teamS
 	teamNamesAndScores = append(teamNamesAndScores, team2)
 
 	if len(teamNamesAndScores) < 2 {
-		return "", "", 0, 0, errors.New("invalid line, no commas to separate teams")
+		return teamNameScore{"", 0}, teamNameScore{"", 0}, errors.New("invalid line, no commas to separate teams")
 	} else {
 
-		getTeamNameAndScore := func(nameAndScoreString string) (teamName string, teamScore int, scoreErr error) {
+		getTeamNameAndScore := func(nameAndScoreString string) (team teamNameScore, scoreErr error) {
 			nameScoreSplitRegex := regexp.MustCompile(`\s[0-9]+`)
 			//find all the indexes of numbers preceded by a space
 			scoreIndex := nameScoreSplitRegex.FindAllStringIndex(nameAndScoreString, -1)
 
 			if scoreIndex == nil {
-				return "", 0, errors.New("invalid line, could not find a team score")
+				return teamNameScore{"", 0}, errors.New("invalid line, could not find a team score")
 			}
 			//find last index of a space followed by a number
-			teamName = nameAndScoreString[0:scoreIndex[len(scoreIndex)-1][0]]
-			teamScore, scoreErr = strconv.Atoi(strings.TrimSpace(nameAndScoreString[scoreIndex[len(scoreIndex)-1][0]:scoreIndex[len(scoreIndex)-1][1]]))
+			teamName := nameAndScoreString[0:scoreIndex[len(scoreIndex)-1][0]]
+			teamScore, scoreErr := strconv.Atoi(strings.TrimSpace(nameAndScoreString[scoreIndex[len(scoreIndex)-1][0]:scoreIndex[len(scoreIndex)-1][1]]))
+			fmt.Println("Makes to here with ", teamName, " and team score ", teamScore)
 			if scoreErr != nil {
-				return "", 0, scoreErr
+				return teamNameScore{teamName, teamScore}, scoreErr
 			}
-			return teamName, teamScore, nil
+			return teamNameScore{teamName, teamScore}, nil
 		}
-
-		teamName1, teamScore1, scoreErr := getTeamNameAndScore(teamNamesAndScores[0])
+		var team1NameScore teamNameScore
+		var team2NameScore teamNameScore
+		var scoreErr error
+		team1NameScore, scoreErr = getTeamNameAndScore(teamNamesAndScores[0])
 		if scoreErr != nil {
-			return teamName1, teamName2, teamScore1, teamScore2, scoreErr
+			return teamNameScore1, teamNameScore2, scoreErr
 		}
-		teamName2, teamScore2, scoreErr := getTeamNameAndScore(teamNamesAndScores[1])
+		team2NameScore, scoreErr = getTeamNameAndScore(teamNamesAndScores[1])
 		if scoreErr != nil {
-			return teamName1, teamName2, teamScore1, teamScore2, scoreErr
+			return team1NameScore, team2NameScore, scoreErr
 		}
-		return teamName1, teamName2, teamScore1, teamScore2, nil
+		return team1NameScore, team2NameScore, nil
 	}
 
 }

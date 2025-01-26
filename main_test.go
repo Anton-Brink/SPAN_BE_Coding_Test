@@ -11,20 +11,6 @@ import (
 	"testing"
 )
 
-type filesAndExpectedFails struct {
-	fileName string
-	errLines []int
-}
-
-var testCaseFileNames = []filesAndExpectedFails{
-	{"result1.txt", []int{}},
-	{"result2.txt", []int{6, 7, 8}},
-	{"result3.txt", []int{1}},
-	{"result4.txt", []int{}},
-}
-
-var debugFile = "result3.txt"
-
 func contains[T comparable](slice []T, value T) bool {
 	for _, v := range slice {
 		if v == value {
@@ -35,6 +21,21 @@ func contains[T comparable](slice []T, value T) bool {
 }
 
 func TestGetTeamNamesAndScores(t *testing.T) {
+
+	type filesAndExpectedFails struct {
+		fileName string
+		errLines []int
+	}
+
+	var testCaseFileNames = []filesAndExpectedFails{
+		{"result1.txt", []int{}},
+		{"result2.txt", []int{6, 7, 8}},
+		{"result3.txt", []int{1}},
+		{"result4.txt", []int{}},
+	}
+
+	var debugFile = "result3.txt"
+
 	for _, value := range testCaseFileNames {
 		// open file
 		fmt.Println("Testing File: ", value.fileName)
@@ -53,7 +54,7 @@ func TestGetTeamNamesAndScores(t *testing.T) {
 			lineCounter++
 			// do something with a line
 			line := scanner.Text()
-			teamName1, teamName2, teamScore1, teamScore2, nameErr := getTeamNamesAndScores(line)
+			team1, team2, nameErr := getTeamNamesAndScores(line)
 			if nameErr != nil {
 				if !contains(value.errLines, lineCounter) {
 					t.Errorf("Line %d should not have an error", lineCounter)
@@ -63,8 +64,8 @@ func TestGetTeamNamesAndScores(t *testing.T) {
 				t.Log("LINE PASSED: " + scanner.Text())
 				if value.fileName == debugFile {
 					fmt.Println("Line: ", line)
-					fmt.Printf("%s - %d \n", teamName1, teamScore1)
-					fmt.Printf("%s - %d \n", teamName2, teamScore2)
+					fmt.Printf("%s - %d \n", team1.Name, team1.Score)
+					fmt.Printf("%s - %d \n", team2.Name, team2.Score)
 				}
 			}
 		}
@@ -103,11 +104,11 @@ func TestCalculateTeamsOrder(t *testing.T) {
 
 	teamPointsTestCases := []struct {
 		teamPoints     map[string]int
-		expectedResult []teamNameScore
+		expectedResult []teamNamePoints
 	}{
-		{map[string]int{"Ben": 1, "Anton": 1, "Span": 3}, []teamNameScore{{"Span", 3}, {"Anton", 1}, {"Ben", 1}}},
-		{map[string]int{"Ben": 3, "Anton": 3, "Span": 3}, []teamNameScore{{"Anton", 3}, {"Ben", 3}, {"Span", 3}}},
-		{map[string]int{"Ben": 1, "Anton": 2, "Span": 3}, []teamNameScore{{"Span", 3}, {"Anton", 2}, {"Ben", 1}}},
+		{map[string]int{"Ben": 1, "Anton": 1, "Span": 3}, []teamNamePoints{{"Span", 3}, {"Anton", 1}, {"Ben", 1}}},
+		{map[string]int{"Ben": 3, "Anton": 3, "Span": 3}, []teamNamePoints{{"Anton", 3}, {"Ben", 3}, {"Span", 3}}},
+		{map[string]int{"Ben": 1, "Anton": 2, "Span": 3}, []teamNamePoints{{"Span", 3}, {"Anton", 2}, {"Ben", 1}}},
 	}
 
 	for i, teamPointTestCase := range teamPointsTestCases {
@@ -146,22 +147,43 @@ func TestHandleError(t *testing.T) {
 
 func TestCalculateTeamPoints(t *testing.T) {
 	testTeamPoints := []struct {
-		teamName1      string
-		teamName2      string
-		teamScore1     int
-		teamScore2     int
+		team1          teamNameScore
+		team2          teamNameScore
 		expectedResult string
 	}{
-		{"Anton", "Span", 1, 2, "Span"},
-		{"Anton", "Span", 2, 2, "tie"},
-		{"Anton", "Span", 2, 1, "Anton"},
+		{teamNameScore{"Anton", 1}, teamNameScore{"Span", 2}, "Span"},
+		{teamNameScore{"Anton", 2}, teamNameScore{"Span", 2}, "tie"},
+		{teamNameScore{"Anton", 2}, teamNameScore{"Span", 1}, "Anton"},
 	}
 
 	for i, testTeamPoint := range testTeamPoints {
 
-		result := calculateTeamPoints(testTeamPoint.teamScore1, testTeamPoint.teamScore2, testTeamPoint.teamName1, testTeamPoint.teamName2)
+		result := calculateTeamPoints(testTeamPoint.team1, testTeamPoint.team2)
 		if result != testTeamPoint.expectedResult {
 			t.Errorf("The result is not the same as expected for testTeamPoints %d\n expected: %s\n actual: %s", i+1, testTeamPoint.expectedResult, result)
 		}
 	}
+}
+
+func TestPrintResults(t *testing.T) {
+	testSortedTeams := []struct {
+		teams          []teamNamePoints
+		expectedResult string
+	}{
+		{[]teamNamePoints{{"Span", 3}, {"Anton", 1}, {"Ben", 1}}, "1. Span, 3 pts\n2. Anton, 1 pt\n2. Ben, 1 pt"},
+		{[]teamNamePoints{{"Anton", 3}, {"Ben", 3}, {"Span", 3}}, "1. Anton, 3 pts\n1. Ben, 3 pts\n1. Span, 3 pts"},
+		{[]teamNamePoints{{"Span", 3}, {"Anton", 2}, {"Ben", 1}}, "1. Span, 3 pts\n2. Anton, 2 pts\n3. Ben, 1 pt"},
+	}
+	for i, testTeamPoint := range testSortedTeams {
+		var output bytes.Buffer
+		printResults(testTeamPoint.teams, &output)
+		if output.String() != testTeamPoint.expectedResult {
+			t.Errorf("The result is not the same as expected for testSortedTeams %d\n expected: %s\n actual: %s", i+1, testTeamPoint.expectedResult, output.String())
+		}
+	}
+
+}
+
+func TestReceiveScannerInputs(t *testing.T) {
+
 }
