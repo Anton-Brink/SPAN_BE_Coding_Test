@@ -9,15 +9,15 @@ import (
 )
 
 type filesAndExpectedFails struct {
-	fileName       string
-	expectedFailed int
+	fileName string
+	errLines []int
 }
 
 var testCaseFileNames = []filesAndExpectedFails{
-	{"result1.txt", 0},
-	{"result2.txt", 3},
-	{"result3.txt", 1},
-	{"result4.txt", 0},
+	{"result1.txt", []int{}},
+	{"result2.txt", []int{6, 7, 8}},
+	{"result3.txt", []int{1}},
+	{"result4.txt", []int{}},
 }
 
 var debugFile = "result3.txt"
