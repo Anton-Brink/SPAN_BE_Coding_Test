@@ -5,6 +5,7 @@ import (
 	"cmp"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"regexp"
@@ -43,7 +44,7 @@ func receiveScannerInputs() map[string]int {
 		result := ""
 		teamName1, teamName2, team1Score, team2Score, nameErr := getTeamNamesAndScores(line)
 		if nameErr != nil {
-			handleError(nameErr, counter)
+			handleError(nameErr, counter, os.Stdout, os.Stdout)
 		} else {
 			result = calculateTeamPoints(team1Score, team2Score, teamName1, teamName2)
 			initAndUpdateTeamPoints(teamPoints, teamName1, teamName2, result)
@@ -68,16 +69,14 @@ func initAndUpdateTeamPoints(teamPoints map[string]int, teamName1, teamName2, re
 	if result == "tie" {
 		teamPoints[teamName1] += 1
 		teamPoints[teamName2] += 1
-	} else if result == teamName1 {
-		teamPoints[teamName1] += 3
 	} else {
-		teamPoints[teamName2] += 3
+		teamPoints[result] += 3
 	}
 }
 
-func handleError(err error, lineNumber int) {
-	fmt.Println("Error: ", err)
-	fmt.Println("Line ", lineNumber, " has an error and was not added to the tally, please ensure your format for every line is team1 score, team2 score")
+func handleError(err error, lineNumber int, w, w2 io.Writer) {
+	fmt.Fprintf(w, "Error: %s\n", err)
+	fmt.Fprintf(w2, "Line %d has an error and was not added to the tally, please ensure your format for every line is team1 score, team2 score\n", lineNumber)
 }
 
 func calculateTeamsOrder(teamPoints map[string]int) []teamNameScore {
