@@ -16,7 +16,7 @@ type filesAndExpectedFails struct {
 var testCaseFileNames = []filesAndExpectedFails{
 	{"result1.txt", 0},
 	{"result2.txt", 3},
-	// {"result3.txt", 1},
+	{"result3.txt", 1},
 	{"result4.txt", 0},
 }
 

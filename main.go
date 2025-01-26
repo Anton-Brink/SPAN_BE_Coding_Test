@@ -101,12 +101,26 @@ func calculateTeamPoints(team1Score, team2Score int, team1Name, team2Name string
 }
 
 func getTeamNamesAndScores(inputLine string) (teamName1, teamName2 string, teamScore1, teamScore2 int, calculationError error) {
-	// do regex later for proof of concept stuff, teams with comma and or numbers in name
-	// splitRegex := regexp.MustCompile("[0-9], [0-9a-zA-Z]");
-	var bothNamesAndScores = strings.Split(inputLine, ",")
-	// println("BothNamesAndScores: ", bothNamesAndScores)
 
-	if len(bothNamesAndScores) < 2 {
+	// get positions of commas that are preceded by a score
+	splitPosRegex := regexp.MustCompile(`\s[0-9]+,\s`)
+	var teamDelimPos = splitPosRegex.FindAllStringIndex(inputLine, -1)
+	var teamDelimSplitArray = splitPosRegex.Split(inputLine, -1)
+
+	if teamDelimPos == nil {
+		return "", "", 0, 0, errors.New("invalid line, teams have to be separated by a comma , for example team1 3, team2, 4")
+	} else if len(teamDelimSplitArray) > 2 {
+		return "", "", 0, 0, errors.New("invalid line, team names cannot contain commas and numbers in the following format ' 1234, '")
+	}
+	var teamNamesAndScores []string
+
+	team1 := strings.Trim(inputLine[0:teamDelimPos[0][1]], " ")
+	team1 = team1[0 : len(team1)-1]
+	team2 := strings.Trim(inputLine[teamDelimPos[0][1]:], " ")
+	teamNamesAndScores = append(teamNamesAndScores, team1)
+	teamNamesAndScores = append(teamNamesAndScores, team2)
+
+	if len(teamNamesAndScores) < 2 {
 		return "", "", 0, 0, errors.New("invalid line, no commas to separate teams")
 	} else {
 
@@ -130,11 +144,11 @@ func getTeamNamesAndScores(inputLine string) (teamName1, teamName2 string, teamS
 			return teamName, teamScore, nil
 		}
 
-		teamName1, teamScore1, scoreErr := getTeamNameAndScore(bothNamesAndScores[0])
+		teamName1, teamScore1, scoreErr := getTeamNameAndScore(teamNamesAndScores[0])
 		if scoreErr != nil {
 			return teamName1, teamName2, teamScore1, teamScore2, scoreErr
 		}
-		teamName2, teamScore2, scoreErr := getTeamNameAndScore(bothNamesAndScores[1])
+		teamName2, teamScore2, scoreErr := getTeamNameAndScore(teamNamesAndScores[1])
 		if scoreErr != nil {
 			return teamName1, teamName2, teamScore1, teamScore2, scoreErr
 		}
