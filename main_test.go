@@ -22,6 +22,7 @@ func contains[T comparable](slice []T, value T) bool {
 
 func TestGetTeamNamesAndScores(t *testing.T) {
 
+	//use error lines so we can have a few lines that we know will fail but not make the test fail
 	type filesAndExpectedFails struct {
 		fileName string
 		errLines []int
@@ -37,31 +38,31 @@ func TestGetTeamNamesAndScores(t *testing.T) {
 	var debugFile = "result3.txt"
 
 	for _, value := range testCaseFileNames {
-		// open file
 		fmt.Println("Testing File: ", value.fileName)
 		f, err := os.Open("./gameResults/" + value.fileName)
 		if err != nil {
 			log.Fatal(err)
 		}
-		// remember to close the file at the end of the program
+		// close the file at the end of the program
 		defer f.Close()
 
-		// read the file line by line using scanner
 		scanner := bufio.NewScanner(f)
 		lineCounter := 0
 
 		for scanner.Scan() {
+			//use the line counter so accurate feedback can be given on where something went wrong
 			lineCounter++
-			// do something with a line
 			line := scanner.Text()
 			team1, team2, nameErr := getTeamNamesAndScores(line)
 			if nameErr != nil {
+				//use contains function to check whether the line is in the slice of lines we know should fail
 				if !contains(value.errLines, lineCounter) {
 					t.Errorf("Line %d should not have an error", lineCounter)
 				}
 				fmt.Println("Invalid line: ", line)
 			} else {
 				t.Log("LINE PASSED: " + scanner.Text())
+				//use debug file in case we would like to see the result if we think something should have a different result
 				if value.fileName == debugFile {
 					fmt.Println("Line: ", line)
 					fmt.Printf("%s - %d \n", team1.Name, team1.Score)
@@ -222,6 +223,52 @@ func TestReceiveScannerInputs(t *testing.T) {
 		if !reflect.DeepEqual(scannerInputResult, scannerInputTest.expectedResult) {
 			t.Errorf("The results are not the same as expected for scannerInputTests %d\n expected: %v\n actual: %v", i+1, scannerInputTest.expectedResult, scannerInputResult)
 		}
+	}
+
+}
+
+func TestIntegration(t *testing.T) {
+
+	scannerInputTests := []struct {
+		fileName       string
+		expectedResult map[string]int
+	}{
+		{"result1.txt", map[string]int{"Lions": 5, "Snakes": 1, "Tarantulas": 6, "FC Awesome": 1, "Grouches": 0}},
+		{"result2.txt", map[string]int{"Lions": 5, "Snakes": 1, "Tarantulas": 6, "FC Awesome": 1, "Grouches": 0}},
+		{"result3.txt", map[string]int{"the, c4,ts": 3, "the, lions": 0}},
+		{"result4.txt", map[string]int{"1970 Coca Cola": 9, "Pepsi": 0, "Fanta 1899": 6}},
+	}
+
+	for i, scannerInputTest := range scannerInputTests {
+
+		reader, writer, err := os.Pipe()
+		if err != nil {
+			t.Fatalf("failed to create pipe: %v", err)
+			t.FailNow()
+		}
+		defer reader.Close()
+		defer writer.Close()
+
+		// Save the original os.Stdin for restoration later
+		originalStdin := os.Stdin
+		defer func() { os.Stdin = originalStdin }()
+
+		os.Stdin = reader
+
+		input := scannerInputTest.fileName
+		go func() {
+			fmt.Fprint(writer, input)
+			writer.Close() // Close the writer to signal EOF
+		}()
+
+		scannerInputResult := receiveScannerInputs()
+
+		if !reflect.DeepEqual(scannerInputResult, scannerInputTest.expectedResult) {
+			t.Errorf("The results are not the same as expected for scannerInputTests %d\n expected: %v\n actual: %v", i+1, scannerInputTest.expectedResult, scannerInputResult)
+		}
+		sortedTeams := calculateTeamsOrder(scannerInputResult)
+		printResults(sortedTeams, os.Stdout)
+
 	}
 
 }

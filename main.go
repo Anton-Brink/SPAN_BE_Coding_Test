@@ -64,7 +64,9 @@ func receiveScannerInputs() map[string]int {
 		if nameErr != nil {
 			handleError(nameErr, counter, os.Stdout, os.Stdout)
 		} else {
+			//first determine which team wins or whether its a tie
 			result = calculateTeamPoints(team1, team2)
+			//update the team values in the teamPoints array based on the result from above
 			initAndUpdateTeamPoints(teamPoints, team1.Name, team2.Name, result)
 		}
 
@@ -73,12 +75,14 @@ func receiveScannerInputs() map[string]int {
 }
 
 func initAndUpdateTeamPoints(teamPoints map[string]int, teamName1, teamName2, result string) {
+	//make sure both teams exist before updating
 	if _, exists := teamPoints[teamName1]; !exists {
 		teamPoints[teamName1] = 0
 	}
 	if _, exists := teamPoints[teamName2]; !exists {
 		teamPoints[teamName2] = 0
 	}
+	//if its a tie increase both team scores by 1, otherwise increase the winning team's points by 3
 	if result == "tie" {
 		teamPoints[teamName1] += 1
 		teamPoints[teamName2] += 1
@@ -113,11 +117,15 @@ func calculateTeamsOrder(teamPoints map[string]int) []teamNamePoints {
 func printResults(sortedTeams []teamNamePoints, w io.Writer) {
 	pos := 0
 	previousPoints := 0
+	//go through the teams and print the results
 	for i, team := range sortedTeams {
+		// if the previous team did not have the same amount of points, increase their position to their position in the sorted array + 1
 		if previousPoints != team.Points || pos == 0 {
 			pos = i + 1
 		}
+		//check whether its the last value in the array and don't add a \n, since the expected output did not have an empty line at the bottom
 		if i != len(sortedTeams)-1 {
+			//check whether the team does not have only one point, if that is the case write pt instead of pts
 			if team.Points != 1 {
 				fmt.Fprintf(w, "%d. %s, %d pts\n", pos, team.Name, team.Points)
 			} else {
@@ -158,6 +166,7 @@ func getTeamNamesAndScores(inputLine string) (teamNameScore1, teamNameScore2 tea
 	}
 	var teamNamesAndScores []string
 
+	//copy the team segment and remove the comma
 	team1 := strings.TrimSpace(inputLine[0:teamDelimPos[0][1]])
 	team1 = team1[0 : len(team1)-1]
 	team2 := strings.TrimSpace(inputLine[teamDelimPos[0][1]:])
@@ -176,7 +185,7 @@ func getTeamNamesAndScores(inputLine string) (teamNameScore1, teamNameScore2 tea
 			if scoreIndex == nil {
 				return teamNameScore{"", 0}, errors.New("invalid line, could not find a team score")
 			}
-			//find last index of a space followed by a number
+			//find last index of a space followed by a number this allows for teams with numbers in them
 			teamName := nameAndScoreString[0:scoreIndex[len(scoreIndex)-1][0]]
 			teamScore, scoreErr := strconv.Atoi(strings.TrimSpace(nameAndScoreString[scoreIndex[len(scoreIndex)-1][0]:scoreIndex[len(scoreIndex)-1][1]]))
 			if scoreErr != nil {
